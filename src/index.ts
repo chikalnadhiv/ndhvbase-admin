@@ -31,9 +31,19 @@ app.use('/api/projects', projectsRoutes);
 
 // Serve admin panel static files
 // Serve admin panel static files
-const adminPath = path.join(__dirname, 'admin');
+const adminPath = path.join(process.cwd(), 'admin-build');
 console.log('Serving admin from:', adminPath);
 app.use('/admin', express.static(adminPath));
+
+// Serve admin panel for root /admin route
+app.get('/admin', (req, res) => {
+  const indexPath = path.join(adminPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send(`Admin panel not found at ${adminPath}`);
+  }
+});
 
 // Serve admin panel for all /admin/* routes (SPA fallback)
 app.get('/admin/*', (req, res) => {
@@ -46,7 +56,8 @@ app.get('/admin/*', (req, res) => {
       <h1>404 - Admin Panel Not Found</h1>
       <p>Looking for: ${indexPath}</p>
       <p>Current Directory: ${process.cwd()}</p>
-      <p>Files in admin/dist: ${JSON.stringify(listDir(adminPath))}</p>
+      <p>Files in admin-build: ${JSON.stringify(listDir(adminPath))}</p>
+      <p>Files in cwd: ${JSON.stringify(listDir(process.cwd()))}</p>
     `);
   }
 });
