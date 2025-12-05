@@ -64,8 +64,20 @@ const listFilesRecursive = (dir: string, depth = 0, maxDepth = 3) => {
 };
 
 // Serve admin panel static files
-// In production (dist), admin is in the same folder as index.js
-const adminPath = path.join(__dirname, 'admin');
+const possibleAdminPaths = [
+  path.join(process.cwd(), 'dist', 'admin'),
+  path.join(__dirname, 'dist', 'admin'),
+  path.join(__dirname, 'admin'),
+  path.join(process.cwd(), 'admin')
+];
+
+let adminPath = possibleAdminPaths[0];
+for (const p of possibleAdminPaths) {
+  if (fs.existsSync(p)) {
+    adminPath = p;
+    break;
+  }
+}
 
 console.log('Serving admin from:', adminPath);
 app.use('/admin', express.static(adminPath));
@@ -80,6 +92,7 @@ app.get('/admin', (req, res) => {
       error: 'Admin panel not found',
       triedPath: indexPath,
       resolvedAdminPath: adminPath,
+      possiblePaths: possibleAdminPaths,
       cwd: process.cwd(),
       dirname: __dirname,
       filesInDir: listDir(__dirname),
@@ -98,6 +111,7 @@ app.get('/admin/*', (req, res) => {
       error: 'Admin panel not found (SPA fallback)',
       triedPath: indexPath,
       resolvedAdminPath: adminPath,
+      possiblePaths: possibleAdminPaths,
       cwd: process.cwd(),
       dirname: __dirname,
       filesInDir: listDir(__dirname),
