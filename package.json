@@ -5,12 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && npm run build:admin",
+    "build": "npm run build:admin && tsc",
     "build:admin": "cd admin && npm install && npm run build",
     "start": "node dist/index.js",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "postinstall": "npm run build:admin"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
