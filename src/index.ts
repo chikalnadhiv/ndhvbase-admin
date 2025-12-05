@@ -51,6 +51,11 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Root route - redirect to admin
+app.get('/', (req, res) => {
+  res.redirect('/admin');
+});
+
 // Start server - listen on all network interfaces (0.0.0.0)
 // Start server - listen on all network interfaces (0.0.0.0)
 if (require.main === module) {
