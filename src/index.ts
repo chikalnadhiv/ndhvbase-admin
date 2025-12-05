@@ -30,8 +30,55 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/projects', projectsRoutes);
 
 // Serve admin panel static files
+// Helper to list directory safely
+const listDir = (dir: string) => {
+  try {
+    return fs.readdirSync(dir);
+  } catch (e: any) {
+    return `Error: ${e.message}`;
+  }
+};
+
+// Recursive file lister for debugging
+const listFilesRecursive = (dir: string, depth = 0, maxDepth = 3) => {
+  if (depth > maxDepth) return ['...'];
+  try {
+    const files = fs.readdirSync(dir);
+    let result: string[] = [];
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      const stat = fs.statSync(filePath);
+      if (stat.isDirectory()) {
+        result.push(`${file}/`);
+        const children = listFilesRecursive(filePath, depth + 1, maxDepth);
+        result = result.concat(children.map(c => `${file}/${c}`));
+      } else {
+        result.push(file);
+      }
+    }
+    return result;
+  } catch (e) {
+    return [];
+  }
+};
+
 // Serve admin panel static files
-const adminPath = path.join(process.cwd(), 'admin-build');
+// Try multiple paths to find the admin folder
+const possibleAdminPaths = [
+  path.join(process.cwd(), 'admin-build'),
+  path.join(__dirname, 'admin-build'),
+  path.join(process.cwd(), '..', 'admin-build'),
+  path.join(__dirname, '..', 'admin-build')
+];
+
+let adminPath = possibleAdminPaths[0];
+for (const p of possibleAdminPaths) {
+  if (fs.existsSync(p)) {
+    adminPath = p;
+    break;
+  }
+}
+
 console.log('Serving admin from:', adminPath);
 app.use('/admin', express.static(adminPath));
 
@@ -41,7 +88,15 @@ app.get('/admin', (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(404).send(`Admin panel not found at ${adminPath}`);
+    res.status(404).json({
+      error: 'Admin panel not found',
+      triedPath: indexPath,
+      resolvedAdminPath: adminPath,
+      possiblePaths: possibleAdminPaths,
+      cwd: process.cwd(),
+      dirname: __dirname,
+      filesInCwd: listFilesRecursive(process.cwd())
+    });
   }
 });
 
@@ -51,25 +106,17 @@ app.get('/admin/*', (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    // Fallback for debugging
-    res.status(404).send(`
-      <h1>404 - Admin Panel Not Found</h1>
-      <p>Looking for: ${indexPath}</p>
-      <p>Current Directory: ${process.cwd()}</p>
-      <p>Files in admin-build: ${JSON.stringify(listDir(adminPath))}</p>
-      <p>Files in cwd: ${JSON.stringify(listDir(process.cwd()))}</p>
-    `);
+    res.status(404).json({
+      error: 'Admin panel not found (SPA fallback)',
+      triedPath: indexPath,
+      resolvedAdminPath: adminPath,
+      possiblePaths: possibleAdminPaths,
+      cwd: process.cwd(),
+      dirname: __dirname,
+      filesInCwd: listFilesRecursive(process.cwd())
+    });
   }
 });
-
-// Helper to list directory safely
-const listDir = (dir: string) => {
-  try {
-    return fs.readdirSync(dir);
-  } catch (e: any) {
-    return `Error: ${e.message}`;
-  }
-};
 
 // Test endpoint for mobile debugging
 app.get('/api/test', (req, res) => {
