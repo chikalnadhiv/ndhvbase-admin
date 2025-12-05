@@ -28,16 +28,51 @@ app.use('/api/contacts', contactsRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/projects', projectsRoutes);
 
-// Serve admin panel static files
-const adminPath = path.join(process.cwd(), 'admin', 'dist');
-console.log('Serving admin from:', adminPath);
+// Helper to find admin path
+function getAdminPath() {
+  const fs = require('fs');
+  const paths = [
+    path.join(process.cwd(), 'admin', 'dist'),
+    path.join(process.cwd(), 'dist', 'admin', 'dist'),
+    path.join(__dirname, 'admin', 'dist'),
+    path.join(__dirname, '..', 'admin', 'dist'),
+  ];
+  
+  for (const p of paths) {
+    if (fs.existsSync(p)) {
+      console.log(`Found admin path at: ${p}`);
+      return p;
+    }
+  }
+  console.log('Could not find admin path. Checked:', paths);
+  console.log('CWD contents:', fs.readdirSync(process.cwd()));
+  return path.join(process.cwd(), 'admin', 'dist');
+}
+
+const adminPath = getAdminPath();
 app.use('/admin', express.static(adminPath));
 
+// Debug endpoint to check filesystem
+app.get('/api/debug-config', (req, res) => {
+  const fs = require('fs');
+  res.json({
+    cwd: process.cwd(),
+    __dirname,
+    adminPath,
+    exists: fs.existsSync(adminPath),
+    files: fs.existsSync(adminPath) ? fs.readdirSync(adminPath) : [],
+    env: process.env
+  });
+});
+
 // Serve admin panel for all /admin/* routes (SPA fallback)
-app.get('/admin/*', (req, res) => {
+app.get(['/admin', '/admin/*'], (req, res) => {
   const indexPath = path.join(adminPath, 'index.html');
-  console.log('Serving index.html from:', indexPath);
-  res.sendFile(indexPath);
+  if (require('fs').existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Admin panel not found (index.html missing)');
+  }
 });
 
 // Test endpoint for mobile debugging
