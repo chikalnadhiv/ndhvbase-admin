@@ -30,7 +30,8 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/projects', projectsRoutes);
 
 // Serve admin panel static files
-const adminPath = path.join(process.cwd(), 'admin', 'dist');
+// Serve admin panel static files
+const adminPath = path.join(__dirname, 'admin');
 console.log('Serving admin from:', adminPath);
 app.use('/admin', express.static(adminPath));
 
